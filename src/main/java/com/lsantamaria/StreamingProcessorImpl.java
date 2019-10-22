@@ -4,16 +4,19 @@ import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
+import akka.stream.javadsl.FileIO;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Framing;
+import akka.stream.javadsl.FramingTruncation;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
+import akka.util.ByteString;
+import java.nio.file.Path;
 import java.security.PrivateKey;
+import java.util.Objects;
 
 /**
- * Streaming service that processes {@link Transaction} messages asynchronously and generates {@link
- * TransactionResult} messages.
+ * This is a basic implementation of a stream processor that reads from a test file, sign its
+ * content and writes the results to a sink that discards the elements.
  */
 public class StreamingProcessorImpl implements StreamingProcessor {
 
@@ -23,37 +26,25 @@ public class StreamingProcessorImpl implements StreamingProcessor {
     this.service = service;
   }
 
-  public void streamFile(String fileName) throws NoSuchAlgorithmException {
+  public void processFile(Path filePath, PrivateKey privateKey) {
+    Objects.requireNonNull(filePath, "File path can not be null");
+    Objects.requireNonNull(privateKey, "Private key can not be null");
+
     final ActorSystem system = ActorSystem.create("transaction-processor");
     final Materializer materializer = ActorMaterializer.create(system);
-    final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-    final PrivateKey privateKey = keyPairGenerator.generateKeyPair().getPrivate();
 
     final Flow<Transaction, TransactionResult, NotUsed> processor =
         Flow.of(Transaction.class)
             .map(service::processTransaction)
             .map(TransactionResult::new);
 
-    Source
-        .range(0, 100)
-        .map(number -> new Transaction(privateKey, Integer.toString(number)))
+    FileIO.fromPath(filePath)
+        .via(Framing.delimiter(ByteString.fromString("\n"), 256,
+            FramingTruncation.ALLOW).map(ByteString::utf8String))
+        .map(line -> new Transaction(privateKey, line))
         .async()
         .via(processor)
-        .runWith(Sink.ignore(),
-            materializer);
-
-//    FileIO.fromPath(Paths.get(fileName))
-//        .via(Framing.delimiter
-//            (ByteString.fromString("\n"), 256,
-//                FramingTruncation.ALLOW).map(ByteString::utf8String))
-//        .map(line -> {
-//          System.out.println(line);
-//          return new Transaction(privateKey, line);
-//        })
-//        .async()
-//
-//        .via(processor)
-//        .to(Sink.ignore())
-//        .run(materializer);
+        .to(Sink.ignore())
+        .run(materializer);
   }
 }

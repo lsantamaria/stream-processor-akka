@@ -12,7 +12,7 @@ public interface Service {
    * Process a transaction asynchronously and return the {@link CompletionStage} that will hold the
    * result.
    *
-   * @param tx the transaction
+   * @param tx the transaction to process.
    */
   CompletionStage<Optional<String>> processTransaction(Transaction tx);
 }
