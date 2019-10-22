@@ -10,15 +10,13 @@ import akka.stream.javadsl.Source;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 /**
  * Streaming service that processes {@link Transaction} messages asynchronously and generates {@link
  * TransactionResult} messages.
  */
 public class StreamingProcessorImpl implements StreamingProcessor {
+
   private final Service service;
 
   public StreamingProcessorImpl(Service service) {
@@ -34,11 +32,15 @@ public class StreamingProcessorImpl implements StreamingProcessor {
     final Flow<Transaction, TransactionResult, NotUsed> processor =
         Flow.of(Transaction.class)
             .map(service::processTransaction)
-//            .map(completionStage -> completionStage.exceptionally(ex -> Optional.of(ex.getMessage())))
-            .map(CompletionStage::toCompletableFuture)
-            .map(completionStage -> completionStage.exceptionally(ex -> Optional.of(ex.getMessage())))
             .map(TransactionResult::new);
 
+    Source
+        .range(0, 100)
+        .map(number -> new Transaction(privateKey, Integer.toString(number)))
+        .async()
+        .via(processor)
+        .runWith(Sink.ignore(),
+            materializer);
 
 //    FileIO.fromPath(Paths.get(fileName))
 //        .via(Framing.delimiter
@@ -49,17 +51,9 @@ public class StreamingProcessorImpl implements StreamingProcessor {
 //          return new Transaction(privateKey, line);
 //        })
 //        .async()
-
+//
 //        .via(processor)
 //        .to(Sink.ignore())
 //        .run(materializer);
-
-    Source
-        .range(0, 100)
-        .map(number -> new Transaction(privateKey, Integer.toString(number)))
-        .async()
-        .via(processor)
-        .to(Sink.ignore())
-        .run(materializer);
   }
 }

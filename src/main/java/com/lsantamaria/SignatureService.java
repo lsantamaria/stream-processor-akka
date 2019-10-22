@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
  * on the given transaction using the supplied private key.
  */
 public class SignatureService implements Service {
-
   private static final String SIGNATURE_ALGORITHM = "SHA1withRSA";
   private static final String SUPPORTED_KEY_ALGORITHM = "RSA";
   private static final String ALGORITHM_NOT_VALID = "The provided algorithm is not valid";
@@ -27,27 +26,27 @@ public class SignatureService implements Service {
   public CompletionStage<Optional<String>> processTransaction(Transaction tx) {
     PrivateKey privateKey = tx.getPrivateKey();
     String text = tx.getTextToSign();
-    logger.info("Processing element {}", tx.getTextToSign());
+    if (logger.isDebugEnabled()) {
+      logger.info("Processing element {}", tx.getTextToSign());
+    }
+
     return CompletableFuture.supplyAsync(() -> {
       if (!SUPPORTED_KEY_ALGORITHM.equals(privateKey.getAlgorithm())) {
-        logger.info("Transaction completed with a business error {}", text);
+        logger.info("Signature transaction completed with a business error: Key algorithm not supported");
         return Optional.of(ALGORITHM_NOT_VALID);
       }
-
       try {
         Signature signature = Signature.getInstance(SIGNATURE_ALGORITHM);
         signature.initSign(privateKey);
         signature.update(text.getBytes());
         byte[] signed = signature.sign();
-        logger.info("Transaction completed successfully. Element {}, Signature: {}", text,
+        logger.info("Signature transaction completed successfully. Signature: {}",
             Base64.getEncoder().encodeToString(signed));
         return Optional.empty();
       } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
-        logger.error("Transaction completed with a signature exception {}", text);
-        throw new ApplicationException(
-            String.format("Exception completing transaction with element %s ", text));
+        logger.error("Signature transaction completed with error");
+        throw new ApplicationException(e);
       }
     });
-
   }
 }
