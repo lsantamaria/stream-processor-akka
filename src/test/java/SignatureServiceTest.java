@@ -44,7 +44,7 @@ public class SignatureServiceTest {
   }
 
   @Test
-  public void givenTransactionNotSupportedKeyAlg_whenProcessingIt_thenReturnSuccessfulResult()
+  public void givenTransactionNotSupportedKeyAlg_whenProcessingIt_thenReturnResultWithError()
       throws Exception {
     CountDownLatch countDownLatch = new CountDownLatch(1);
     String lineToSign = "This is the line to sign";
