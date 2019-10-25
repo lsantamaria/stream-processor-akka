@@ -27,9 +27,8 @@ public class SignatureService implements Service {
     PrivateKey privateKey = tx.getPrivateKey();
     String text = tx.getTextToSign();
     String signatureAlgorithm = tx.getSignatureAlgorithm();
-    if (logger.isDebugEnabled()) {
-      logger.debug("Processing element {}", tx.getTextToSign());
-    }
+
+    logger.debug("Processing element {}", tx.getTextToSign());
 
     return CompletableFuture.supplyAsync(() -> {
       if (!SUPPORTED_KEY_ALGORITHM.equals(privateKey.getAlgorithm())) {
