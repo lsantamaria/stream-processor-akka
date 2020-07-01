@@ -11,7 +11,7 @@
         <akka-actor.version>2.5.25</akka-actor.version>
         <akka-stream.version>2.5.25</akka-stream.version>
         <lombok.version>1.18.10</lombok.version>
-        <log4j2.version>2.12.1</log4j2.version>
+        <log4j2.version>2.13.3</log4j2.version>
         <junit.version>4.12</junit.version>
     </properties>
 
